@@ -249,3 +249,7 @@ clean:
 	.gdbinit \
 	$U/usys.S \
 	$(UPROGS)
+
+all: build
+	@cp $(T)/kernel ./kernel-qemu
+	@cp ./bootloader/SBI/sbi-qemu ./sbi-qemu
