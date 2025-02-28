@@ -1,4 +1,5 @@
 # XV6-RISCV On K210
+
 Run xv6-riscv on k210 board  
 [English](./README.md) | [中文](./README_cn.md)   
 
@@ -14,6 +15,10 @@ Run xv6-riscv on k210 board
 ```
 
 ![run-k210](./img/xv6-k210_run.gif)  
+
+## Modifications
+
+Modified for Peking University Operating System Course.
 
 ## Dependencies
 + `k210 board` or `qemu-system-riscv64`
