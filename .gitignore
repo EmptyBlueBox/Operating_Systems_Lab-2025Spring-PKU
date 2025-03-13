@@ -21,3 +21,13 @@ target/*
 
 # VSCode
 .vscode/*
+
+# reference
+reference*/
+
+# testcases
+riscv64-testcases/
+riscv64/
+
+# tmp 16 code
+kernel/include/initcode.h

@@ -8,6 +8,13 @@
 
 char *argv[] = {"sh", 0};
 
+char *tests[] = {
+    "brk", "close", "execve", "fstat", "getpid", "mkdir_", "mount", "openat", "uname", "waitpid",
+    "chdir", "dup", "exit", "getcwd", "getppid", "mmap", "munmap", "pipe", "sleep", "times",
+    "unlink", "write", "clone", "dup2", "fork", "getdents", "gettimeofday", "open", "read", "umount",
+    "wait", "yield"};
+int num = sizeof(tests) / sizeof((tests)[0]);
+
 int main(void)
 {
   int pid, wpid;
@@ -19,10 +26,9 @@ int main(void)
   dev(O_RDWR, CONSOLE, 0);
   dup(0); // stdout
   dup(0); // stderr
-
-  for (;;)
+  for (int i = 0; i < num; i++)
   {
-    printf("init: starting sh\n");
+    printf("\ninit: starting %d\n", i);
     pid = fork();
     if (pid < 0)
     {
@@ -31,8 +37,8 @@ int main(void)
     }
     if (pid == 0)
     {
-      exec("sh", argv);
-      printf("init: exec sh failed\n");
+      exec(tests[i], argv);
+      printf("init: exec %s failed\n", tests[i]);
       exit(1);
     }
 
