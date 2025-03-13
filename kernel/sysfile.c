@@ -19,7 +19,6 @@
 #include "include/string.h"
 #include "include/printf.h"
 #include "include/vm.h"
-#include "include/sbi.h"
 
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
@@ -538,10 +537,4 @@ fail:
   if (src)
     eput(src);
   return -1;
-}
-
-uint64 sys_shutdown()
-{
-  sbi_shutdown();
-  return 0;
 }

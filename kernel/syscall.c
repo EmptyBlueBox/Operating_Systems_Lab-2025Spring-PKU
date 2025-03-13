@@ -10,6 +10,7 @@
 #include "include/vm.h"
 #include "include/string.h"
 #include "include/printf.h"
+#include "include/sbi.h"
 
 // Fetch the uint64 at addr from the current process.
 int fetchaddr(uint64 addr, uint64 *ip)
@@ -226,5 +227,11 @@ sys_sysinfo(void)
     return -1;
   }
 
+  return 0;
+}
+
+uint64 sys_shutdown()
+{
+  sbi_shutdown();
   return 0;
 }

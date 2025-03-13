@@ -20,6 +20,8 @@ int main(void)
   dup(0); // stdout
   dup(0); // stderr
 
+  shutdown();
+
   for (;;)
   {
     printf("init: starting sh\n");
