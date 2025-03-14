@@ -29,6 +29,3 @@ reference*/
 riscv64-testcases/
 riscv64/
 testsuits-for-oskernel/
-
-# tmp 16 code
-kernel/include/initcode.h
