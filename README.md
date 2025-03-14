@@ -66,3 +66,8 @@ make clean
 make fs
 make run
 ```
+
+## Troubleshooting
+
+- `Makefile`
+    - `	@cp -R tests/ $(dst)` instead of `	@cp -R tests $(dst)`, otherwise it'll copy the folder.
