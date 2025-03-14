@@ -26,6 +26,7 @@ target/*
 reference*/
 
 # testcases
+tests/
 riscv64-testcases/
 riscv64/
 testsuits-for-oskernel/
