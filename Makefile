@@ -126,7 +126,7 @@ k210 = $T/k210.bin
 k210-serialport := /dev/ttyUSB0
 
 ifndef CPUS
-CPUS := 2
+CPUS := 1
 endif
 
 QEMUOPTS = -machine virt -kernel $T/kernel -m 32M -nographic
@@ -229,7 +229,7 @@ fs: $(UPROGS)
 	@for file in $$( ls $U/_* ); do \
 		cp $$file $(dst)/$${file#$U/_};\
 		cp $$file $(dst)/bin/$${file#$U/_}; done
-	@cp -r riscv64 $(dst)
+	@cp -r tests $(dst)
 	@umount $(dst)
 
 # Write mounted sdcard

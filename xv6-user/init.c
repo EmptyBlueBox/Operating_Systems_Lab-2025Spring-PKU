@@ -60,8 +60,10 @@ int main(void)
     }
     if (pid == 0)
     {
-      exec(tests[i], argv);
-      printf("init: exec %s failed\n", tests[i]);
+      char path[100] = "tests/";
+      strcat(path, tests[i]);
+      exec(path, argv);
+      printf("init: exec %s failed\n", path);
       exit(1);
     }
 
