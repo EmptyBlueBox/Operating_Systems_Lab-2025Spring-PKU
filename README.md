@@ -70,4 +70,4 @@ make run
 ## Troubleshooting
 
 - `Makefile`
-    - `	@cp -R tests/ $(dst)` instead of `	@cp -R tests $(dst)`, otherwise it'll copy the folder.
+    - `@cp -R tests/ $(dst)` instead of `@cp -R tests $(dst)`, otherwise it'll copy the folder and cause the local test not running.
