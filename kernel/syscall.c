@@ -112,7 +112,11 @@ extern uint64 sys_remove(void);
 extern uint64 sys_trace(void);
 extern uint64 sys_sysinfo(void);
 extern uint64 sys_rename(void);
+
+// Add new syscalls
 extern uint64 sys_shutdown(void);
+extern uint64 sys_uname(void);
+extern uint64 sys_times(void);
 
 static uint64 (*syscalls[])(void) = {
     [SYS_fork] sys_fork,
@@ -141,7 +145,10 @@ static uint64 (*syscalls[])(void) = {
     [SYS_trace] sys_trace,
     [SYS_sysinfo] sys_sysinfo,
     [SYS_rename] sys_rename,
+
     [SYS_shutdown] sys_shutdown,
+    [SYS_uname] sys_uname,
+    [SYS_times] sys_times,
 };
 
 static char *sysnames[] = {
@@ -171,7 +178,10 @@ static char *sysnames[] = {
     [SYS_trace] "trace",
     [SYS_sysinfo] "sysinfo",
     [SYS_rename] "rename",
+
     [SYS_shutdown] "shutdown",
+    [SYS_uname] "uname",
+    [SYS_times] "times",
 };
 
 void syscall(void)
@@ -230,8 +240,25 @@ sys_sysinfo(void)
   return 0;
 }
 
+uint64 sys_uname(void)
+{
+  uint64 addr;
+
+  if (argaddr(0, &addr) < 0)
+  {
+    return -1;
+  }
+
+  struct utsname ans = {"xv6-k210", "pku2100013116", "ver1.0", "xv6-k210-qemu", "MacBookPro", "lyt0112.com"};
+
+  if (copyout2(addr, (char *)&ans, sizeof(struct utsname)) < 0)
+    return -1;
+
+  return 0;
+}
+
 uint64 sys_shutdown()
 {
   sbi_shutdown();
-  return 0;
+  return 0; // never reach
 }

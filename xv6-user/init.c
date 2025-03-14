@@ -1,34 +1,57 @@
-// init: The initial user-level program
-
 #include "kernel/include/types.h"
 #include "kernel/include/stat.h"
 #include "kernel/include/file.h"
 #include "kernel/include/fcntl.h"
 #include "xv6-user/user.h"
 
-char *argv[] = {"sh", 0};
-
+// char *argv[] = { "sh", 0 };
+char *argv[] = {0};
 char *tests[] = {
-    "brk", "close", "execve", "fstat", "getpid", "mkdir_", "mount", "openat", "uname", "waitpid",
-    "chdir", "dup", "exit", "getcwd", "getppid", "mmap", "munmap", "pipe", "sleep", "times",
-    "unlink", "write", "clone", "dup2", "fork", "getdents", "gettimeofday", "open", "read", "umount",
-    "wait", "yield"};
-int num = sizeof(tests) / sizeof((tests)[0]);
+    "brk",
+    "chdir",
+    "clone",
+    "close",
+    "dup",
+    "dup2",
+    "execve",
+    "exit",
+    "fork",
+    "fstat",
+    "getcwd",
+    "getdents",
+    "getpid",
+    "getppid",
+    "gettimeofday",
+    "mkdir_",
+    "mmap",
+    "mount",
+    "munmap",
+    "open",
+    "openat",
+    "pipe",
+    "read",
+    "sleep",
+    "test_echo",
+    "times",
+    "umount",
+    "uname",
+    "unlink",
+    "wait",
+    "waitpid",
+    "write",
+    "yield",
+};
 
 int main(void)
 {
   int pid, wpid;
-
-  // if(open("console", O_RDWR) < 0){
-  //   mknod("console", CONSOLE, 0);
-  //   open("console", O_RDWR);
-  // }
+  // int pid;
   dev(O_RDWR, CONSOLE, 0);
   dup(0); // stdout
   dup(0); // stderr
-  for (int i = 0; i < num; i++)
+  for (int i = 0; i < 33; i++)
   {
-    printf("\ninit: starting %d\n", i);
+    // printf("\ninit: starting %d\n", i);
     pid = fork();
     if (pid < 0)
     {

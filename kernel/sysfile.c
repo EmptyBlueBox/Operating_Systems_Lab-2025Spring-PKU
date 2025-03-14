@@ -356,40 +356,59 @@ sys_readdir(void)
 uint64
 sys_getcwd(void)
 {
+  // printf("called\n");
+  struct proc *p;
   uint64 addr;
-  if (argaddr(0, &addr) < 0)
-    return -1;
+  int size;
+
+  if (argaddr(0, &addr) < 0 || argint(1, &size))
+    return NULL;
 
   struct dirent *de = myproc()->cwd;
   char path[FAT32_MAX_PATH];
   char *s;
   int len;
-
   if (de->parent == NULL)
   {
     s = "/";
   }
   else
   {
-    s = path + FAT32_MAX_PATH - 1;
+    s = path + FAT32_MAX_PATH - 1; // 从后向前填充
     *s = '\0';
     while (de->parent)
     {
       len = strlen(de->filename);
       s -= len;
       if (s <= path) // can't reach root "/"
-        return -1;
+        return NULL;
       strncpy(s, de->filename, len);
       *--s = '/';
       de = de->parent;
     }
   }
 
+  if (addr == NULL)
+  {
+    p = myproc();
+    // Ensure there is enough space in the stack
+    if (p->trapframe->sp < (strlen(s) + 1))
+      return NULL;
+    p->trapframe->sp -= strlen(s) + 1;
+    addr = p->trapframe->sp;
+  }
+  else
+  {
+    int path_length = strlen(s) + 1; // 缓冲区空间不足
+    if (size < path_length)
+      return NULL;
+  }
+
   // if (copyout(myproc()->pagetable, addr, s, strlen(s) + 1) < 0)
   if (copyout2(addr, s, strlen(s) + 1) < 0)
-    return -1;
+    return NULL;
 
-  return 0;
+  return addr;
 }
 
 // Is the directory dp empty except for "." and ".." ?
