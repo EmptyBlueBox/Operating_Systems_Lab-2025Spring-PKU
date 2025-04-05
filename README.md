@@ -1,5 +1,11 @@
 # XV6-RISCV On K210
 
+- Course: [Operating System](https://github.com/EmptyBlueBox/Operating_Systems-2025Spring-PKU)
+- Lecturer: [陈向群(教授)](https://cs.pku.edu.cn/info/1062/1604.htm)
+- Year: 2025 Spring
+- Department: School of EECS, PKU
+- Welcome to my [course review](https://www.lyt0112.com/blog/course_review-zh)!
+
 ## Dependencies
 
 - `k210` development board or `qemu-system-riscv64`
