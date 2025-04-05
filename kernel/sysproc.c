@@ -10,6 +10,7 @@
 #include "include/kalloc.h"
 #include "include/string.h"
 #include "include/printf.h"
+#include "include/vm.h"
 
 extern int exec(char *path, char **argv);
 
@@ -88,7 +89,7 @@ sys_wait(void)
   uint64 p;
   if (argaddr(0, &p) < 0)
     return -1;
-  return wait(p);
+  return wait(-1, p, 0);
 }
 
 uint64
@@ -175,4 +176,84 @@ uint64 sys_times(void)
   *((uint64 *)addr + 2) = 0;
   *((uint64 *)addr + 3) = 0;
   return tick;
+}
+
+uint64 sys_waitpid(void)
+{
+  uint64 p;
+  int pid, options;
+  if (argint(0, &pid) < 0 || argaddr(1, &p) < 0 || argint(2, &options))
+    return -1;
+
+  return wait(pid, p, options);
+}
+
+uint64 sys_clone(void)
+{
+  return clone();
+}
+
+uint64 sys_getppid(void)
+{
+  return myproc()->parent->pid;
+}
+
+uint64 sys_sched_yield(void)
+{
+  yield();
+  return 0;
+}
+
+struct timespec
+{
+  long tv_sec;
+  long tv_usec;
+};
+
+uint64 sys_get_time(void)
+{
+  uint xticks;
+  uint64 addr;
+  int num;
+  struct timespec tmp;
+  if (argaddr(0, &addr) < 0 || argint(1, &num) < 0)
+    return -1;
+
+  acquire(&tickslock);
+  xticks = ticks;
+  release(&tickslock);
+  // printf("time = %d\n", fre);
+
+  tmp.tv_sec = xticks / 200;
+  tmp.tv_usec = (xticks * 1000000 / 200) % 1000000;
+  if (copyout2(addr, (char *)&tmp, sizeof(tmp)) < 0)
+    return -1;
+
+  return 0;
+}
+
+uint64 sys_nanosleep(void)
+{
+  uint64 addr1, addr2;
+  uint xticks0;
+  struct timespec tv;
+
+  if (argaddr(0, &addr1) < 0 || argaddr(1, &addr2) < 0)
+    return -1;
+  if (copyin2((char *)&tv, addr1, sizeof(struct timespec)) < 0)
+    return -1;
+
+  acquire(&tickslock);
+  xticks0 = ticks;
+  while ((ticks - xticks0) / 200 < tv.tv_sec)
+  {
+    if (myproc()->killed)
+    {
+      release(&tickslock);
+      return -1;
+    }
+    sleep(&ticks, &tickslock);
+  }
+  release(&tickslock);
+  return 0;
 }
