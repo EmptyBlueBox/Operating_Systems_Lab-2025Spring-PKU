@@ -32,7 +32,7 @@ entry("dup");
 entry("getpid");
 entry("sbrk");
 entry("sleep");
-entry("uptime");
+entry("times");
 entry("test_proc");
 entry("dev");
 entry("readdir");

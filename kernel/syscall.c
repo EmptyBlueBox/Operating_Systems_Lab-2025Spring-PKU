@@ -102,8 +102,9 @@ extern uint64 sys_read(void);
 extern uint64 sys_sbrk(void);
 extern uint64 sys_sleep(void);
 extern uint64 sys_wait(void);
+// extern uint64 sys_waitpid(void);
 extern uint64 sys_write(void);
-extern uint64 sys_uptime(void);
+extern uint64 sys_times(void);
 extern uint64 sys_test_proc(void);
 extern uint64 sys_dev(void);
 extern uint64 sys_readdir(void);
@@ -112,76 +113,108 @@ extern uint64 sys_remove(void);
 extern uint64 sys_trace(void);
 extern uint64 sys_sysinfo(void);
 extern uint64 sys_rename(void);
-
-// Add new syscalls
-extern uint64 sys_shutdown(void);
+// extern uint64 sys_dup3(void);
+// extern uint64 sys_getppid(void);
+// extern uint64 sys_clone(void);
+// extern uint64 sys_getdents(void);
+// extern uint64 sys_sched_yield(void);
 extern uint64 sys_uname(void);
-extern uint64 sys_times(void);
+// extern uint64 sys_unlink(void);
+// extern uint64 sys_get_time(void);
+// extern uint64 sys_nanosleep(void);
+// extern uint64 sys_mount(void);
+// extern uint64 sys_umount(void);
+// extern uint64 sys_mmap(void);
+// extern uint64 sys_munmap(void);
+
+extern uint64 sys_shutdown(void);
 
 static uint64 (*syscalls[])(void) = {
-    [SYS_fork] sys_fork,
-    [SYS_exit] sys_exit,
-    [SYS_wait] sys_wait,
-    [SYS_pipe] sys_pipe,
-    [SYS_read] sys_read,
-    [SYS_kill] sys_kill,
-    [SYS_exec] sys_exec,
-    [SYS_fstat] sys_fstat,
-    [SYS_chdir] sys_chdir,
-    [SYS_dup] sys_dup,
-    [SYS_getpid] sys_getpid,
-    [SYS_sbrk] sys_sbrk,
-    [SYS_sleep] sys_sleep,
-    [SYS_uptime] sys_uptime,
-    [SYS_open] sys_open,
-    [SYS_write] sys_write,
-    [SYS_mkdir] sys_mkdir,
-    [SYS_close] sys_close,
-    [SYS_test_proc] sys_test_proc,
-    [SYS_dev] sys_dev,
-    [SYS_readdir] sys_readdir,
-    [SYS_getcwd] sys_getcwd,
-    [SYS_remove] sys_remove,
-    [SYS_trace] sys_trace,
-    [SYS_sysinfo] sys_sysinfo,
-    [SYS_rename] sys_rename,
-
-    [SYS_shutdown] sys_shutdown,
-    [SYS_uname] sys_uname,
-    [SYS_times] sys_times,
+	[SYS_fork]        sys_fork,
+	[SYS_exit]        sys_exit,
+	[SYS_wait]        sys_wait,
+	// [SYS_waitpid]     sys_waitpid,
+	[SYS_pipe]        sys_pipe,
+	[SYS_read]        sys_read,
+	[SYS_kill]        sys_kill,
+	[SYS_exec]        sys_exec,
+	[SYS_fstat]       sys_fstat,
+	[SYS_chdir]       sys_chdir,
+	[SYS_dup]         sys_dup,
+	[SYS_getpid]      sys_getpid,
+	[SYS_sbrk]        sys_sbrk,
+	[SYS_sleep]       sys_sleep,
+	[SYS_times]       sys_times,
+	[SYS_open]        sys_open,
+	[SYS_write]       sys_write,
+	[SYS_mkdir]       sys_mkdir,
+	[SYS_close]       sys_close,
+	[SYS_test_proc]   sys_test_proc,
+	[SYS_dev]         sys_dev,
+	[SYS_readdir]     sys_readdir,
+	[SYS_getcwd]      sys_getcwd,
+	[SYS_remove]      sys_remove,
+	[SYS_trace]       sys_trace,
+	[SYS_sysinfo]     sys_sysinfo,
+	[SYS_rename]      sys_rename,
+	// [SYS_dup3]        sys_dup3,
+	// [SYS_getppid]     sys_getppid,
+	// [SYS_clone]       sys_clone,
+	// [SYS_getdents]    sys_getdents,
+	// [SYS_sched_yield] sys_sched_yield,
+	[SYS_uname]       sys_uname,
+	// [SYS_unlinkat]    sys_unlink,
+	// [SYS_gettimeofday]sys_get_time,
+	// [SYS_nanosleep]   sys_nanosleep,
+	// [SYS_mount]			sys_mount,
+	// [SYS_umount]		sys_umount,
+	// [SYS_mmap]			sys_mmap,
+	// [SYS_munmap]		sys_munmap
+  [SYS_shutdown] sys_shutdown,
 };
 
 static char *sysnames[] = {
-    [SYS_fork] "fork",
-    [SYS_exit] "exit",
-    [SYS_wait] "wait",
-    [SYS_pipe] "pipe",
-    [SYS_read] "read",
-    [SYS_kill] "kill",
-    [SYS_exec] "exec",
-    [SYS_fstat] "fstat",
-    [SYS_chdir] "chdir",
-    [SYS_dup] "dup",
-    [SYS_getpid] "getpid",
-    [SYS_sbrk] "sbrk",
-    [SYS_sleep] "sleep",
-    [SYS_uptime] "uptime",
-    [SYS_open] "open",
-    [SYS_write] "write",
-    [SYS_mkdir] "mkdir",
-    [SYS_close] "close",
-    [SYS_test_proc] "test_proc",
-    [SYS_dev] "dev",
-    [SYS_readdir] "readdir",
-    [SYS_getcwd] "getcwd",
-    [SYS_remove] "remove",
-    [SYS_trace] "trace",
-    [SYS_sysinfo] "sysinfo",
-    [SYS_rename] "rename",
-
-    [SYS_shutdown] "shutdown",
-    [SYS_uname] "uname",
-    [SYS_times] "times",
+	[SYS_fork]        "fork",
+	[SYS_exit]        "exit",
+	[SYS_wait]        "wait",
+	// [SYS_waitpid]     "waitpid",
+	[SYS_pipe]        "pipe",
+	[SYS_read]        "read",
+	[SYS_kill]        "kill",
+	[SYS_exec]        "exec",
+	[SYS_fstat]       "fstat",
+	[SYS_chdir]       "chdir",
+	[SYS_dup]         "dup",
+	[SYS_getpid]      "getpid",
+	[SYS_sbrk]        "sbrk",
+	[SYS_sleep]       "sleep",
+	[SYS_times]       "times",
+	[SYS_open]        "open",
+	[SYS_write]       "write",
+	[SYS_mkdir]       "mkdir",
+	[SYS_close]       "close",
+	[SYS_test_proc]   "test_proc",
+	[SYS_dev]         "dev",
+	[SYS_readdir]     "readdir",
+	[SYS_getcwd]      "getcwd",
+	[SYS_remove]      "remove",
+	[SYS_trace]       "trace",
+	[SYS_sysinfo]     "sysinfo",
+	[SYS_rename]      "rename",
+	// [SYS_dup3]        "dup3",
+	// [SYS_getppid]     "getppid",
+	// [SYS_clone]       "clone",
+	// [SYS_getdents]    "getdents",
+	// [SYS_sched_yield] "sched_yield",
+	[SYS_uname]       "uname",
+	// [SYS_unlinkat]    "unlink",
+	// [SYS_gettimeofday]"get_time",
+	// [SYS_nanosleep]   "nanosleep",
+	// [SYS_mount]			"mount",
+	// [SYS_umount]		"umount",
+	// [SYS_mmap]			"mmap",
+	// [SYS_munmap]		"munmap"	
+  [SYS_shutdown] "shutdown",	
 };
 
 void syscall(void)
