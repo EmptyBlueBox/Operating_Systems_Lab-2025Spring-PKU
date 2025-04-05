@@ -120,7 +120,7 @@ extern uint64 sys_clone(void);
 extern uint64 sys_sched_yield(void);
 extern uint64 sys_uname(void);
 // extern uint64 sys_unlink(void);
-extern uint64 sys_get_time(void);
+extern uint64 sys_gettimeofday(void);
 extern uint64 sys_nanosleep(void);
 // extern uint64 sys_mount(void);
 // extern uint64 sys_umount(void);
@@ -164,7 +164,7 @@ static uint64 (*syscalls[])(void) = {
     [SYS_sched_yield] sys_sched_yield,
     [SYS_uname] sys_uname,
     // [SYS_unlinkat]    sys_unlink,
-    [SYS_gettimeofday] sys_get_time,
+    [SYS_gettimeofday] sys_gettimeofday,
     [SYS_nanosleep] sys_nanosleep,
     // [SYS_mount]			sys_mount,
     // [SYS_umount]		sys_umount,
@@ -208,7 +208,7 @@ static char *sysnames[] = {
     [SYS_sched_yield] "sched_yield",
     [SYS_uname] "uname",
     // [SYS_unlinkat]    "unlink",
-    [SYS_gettimeofday] "get_time",
+    [SYS_gettimeofday] "gettimeofday",
     [SYS_nanosleep] "nanosleep",
     // [SYS_mount]			"mount",
     // [SYS_umount]		"umount",

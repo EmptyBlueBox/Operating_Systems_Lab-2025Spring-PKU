@@ -1,4 +1,3 @@
-
 #include "include/types.h"
 #include "include/riscv.h"
 #include "include/param.h"
@@ -204,48 +203,33 @@ uint64 sys_sched_yield(void)
   return 0;
 }
 
-struct timespec
+uint64 sys_gettimeofday(void)
 {
-  long tv_sec;
-  long tv_usec;
-};
-
-uint64 sys_get_time(void)
-{
-  uint xticks;
+  uint64 time;
   uint64 addr;
-  int num;
-  struct timespec tmp;
-  if (argaddr(0, &addr) < 0 || argint(1, &num) < 0)
+  if (argaddr(0, &addr) < 0)
     return -1;
-
-  acquire(&tickslock);
-  xticks = ticks;
-  release(&tickslock);
-  // printf("time = %d\n", fre);
-
-  tmp.tv_sec = xticks / 200;
-  tmp.tv_usec = (xticks * 1000000 / 200) % 1000000;
-  if (copyout2(addr, (char *)&tmp, sizeof(tmp)) < 0)
+  if ((time = r_time()) < 0)
     return -1;
-
+  uint64 sec = time / 10000000;
+  uint64 usec = (time / 10) % 1000000;
+  *(uint64 *)addr = sec;
+  *((uint64 *)addr + 1) = usec;
   return 0;
 }
 
 uint64 sys_nanosleep(void)
 {
-  uint64 addr1, addr2;
-  uint xticks0;
-  struct timespec tv;
-
-  if (argaddr(0, &addr1) < 0 || argaddr(1, &addr2) < 0)
+  uint64 addr;
+  if (argaddr(0, &addr) < 0)
     return -1;
-  if (copyin2((char *)&tv, addr1, sizeof(struct timespec)) < 0)
-    return -1;
-
+  uint64 sec = *(uint64 *)addr;
+  uint64 usec = *((uint64 *)addr + 1);
+  uint64 n = (sec * 20 + usec / 50000000);
+  uint64 ticks0;
   acquire(&tickslock);
-  xticks0 = ticks;
-  while ((ticks - xticks0) / 200 < tv.tv_sec)
+  ticks0 = ticks;
+  while (ticks - ticks0 < n)
   {
     if (myproc()->killed)
     {
