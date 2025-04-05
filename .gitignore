@@ -28,6 +28,5 @@ reference*/
 # testcases
 tests/
 riscv64-testcases/
-riscv64/
 testsuits-for-oskernel/
 oskernel2024-lpy

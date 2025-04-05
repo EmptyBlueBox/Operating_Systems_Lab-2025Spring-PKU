@@ -229,7 +229,7 @@ fs: $(UPROGS)
 	@for file in $$( ls $U/_* ); do \
 		cp $$file $(dst)/$${file#$U/_};\
 		cp $$file $(dst)/bin/$${file#$U/_}; done
-	@cp -R tests/ $(dst)
+	@cp -R riscv64/* $(dst)
 	@umount $(dst)
 
 # Write mounted sdcard
