@@ -113,7 +113,7 @@ extern uint64 sys_remove(void);
 extern uint64 sys_trace(void);
 extern uint64 sys_sysinfo(void);
 extern uint64 sys_rename(void);
-// extern uint64 sys_dup3(void);
+extern uint64 sys_dup3(void);
 extern uint64 sys_getppid(void);
 extern uint64 sys_clone(void);
 // extern uint64 sys_getdents(void);
@@ -157,7 +157,7 @@ static uint64 (*syscalls[])(void) = {
     [SYS_trace] sys_trace,
     [SYS_sysinfo] sys_sysinfo,
     [SYS_rename] sys_rename,
-    // [SYS_dup3]        sys_dup3,
+    [SYS_dup3]        sys_dup3,
     [SYS_getppid] sys_getppid,
     [SYS_clone] sys_clone,
     // [SYS_getdents]    sys_getdents,
@@ -201,7 +201,7 @@ static char *sysnames[] = {
     [SYS_trace] "trace",
     [SYS_sysinfo] "sysinfo",
     [SYS_rename] "rename",
-    // [SYS_dup3]        "dup3",
+    [SYS_dup3]        "dup3",
     [SYS_getppid] "getppid",
     [SYS_clone] "clone",
     // [SYS_getdents]    "getdents",

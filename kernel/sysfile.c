@@ -557,3 +557,47 @@ fail:
     eput(src);
   return -1;
 }
+
+/**
+ * sys_dup3 - Duplicate a file descriptor to a specified new descriptor.
+ *
+ * This system call duplicates the file descriptor old_fd to new_fd.
+ * If new_fd is already open, it will be closed first.
+ * Returns the new file descriptor on success, or -1 on error.
+ *
+ * Parameters:
+ *   - old_fd (int): The source file descriptor to duplicate, fetched from the first syscall argument.
+ *   - new_fd (int): The target file descriptor, fetched from the second syscall argument.
+ *
+ * Returns:
+ *   - (uint64) The new file descriptor (new_fd) on success.
+ *   - (uint64) -1 on error.
+ */
+uint64
+sys_dup3(void)
+{
+  struct file *f;
+  int old_fd, new_fd;
+
+  // 获取第一个参数 old_fd，并将其转换为文件结构指针 f
+  if (argfd(0, &old_fd, &f) < 0)
+    return -1;
+  // 获取第二个参数 new_fd
+  if (argint(1, &new_fd) < 0)
+    return -1;
+
+  // 检查 new_fd 是否在合法范围内
+  if (new_fd < 0 || new_fd >= NOFILE)
+    return -1;
+
+  // 如果 new_fd 已经打开，先关闭它
+  if (myproc()->ofile[new_fd])
+  {
+    fileclose(myproc()->ofile[new_fd]);
+  }
+
+  // 将文件结构指针 f 赋值给 new_fd，并增加引用计数
+  myproc()->ofile[new_fd] = f;
+  filedup(f);
+  return new_fd;
+}

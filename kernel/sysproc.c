@@ -91,20 +91,44 @@ sys_wait(void)
   return wait(-1, p, 0);
 }
 
+/**
+ * sys_sbrk - Adjusts the size of the process's data segment (heap).
+ *
+ * This system call is used to grow or shrink the heap of the calling process.
+ * If n == 0, it returns the current size of the process's memory (heap end address).
+ * Otherwise, it attempts to change the heap size to n bytes.
+ *
+ * Parameters:
+ *   - n (int): The new size of the process's heap in bytes, fetched from the first syscall argument.
+ *
+ * Returns:
+ *   - (uint64) If n == 0, returns the current heap end address (process size).
+ *   - (uint64) If successful in resizing, returns 0.
+ *   - (uint64) If an error occurs (invalid argument or growproc fails), returns -1.
+ */
 uint64
 sys_sbrk(void)
 {
   int addr;
   int n;
 
+  // Fetch the first argument (desired heap size) from the user.
   if (argint(0, &n) < 0)
     return -1;
+
+  // Get the current size of the process's address space.
   addr = myproc()->sz;
-  if (n == 0) // n = 0，用于获取进程所占物理内存的大小
+
+  // If n == 0, return the current heap end address.
+  if (n == 0)
     return addr;
-  if (growproc(n) < 0)
+
+  // Attempt to grow or shrink the process's heap to the new size.
+  if (growproc(n - addr) < 0)
     return -1;
-  return addr;
+
+  // Return 0 on success.
+  return 0;
 }
 
 uint64
@@ -229,8 +253,8 @@ uint64 sys_gettimeofday(void)
   if ((time = r_time()) < 0)
     return -1;
   // Convert hardware time to seconds and microseconds
-  uint64 sec = time / 10000000;        // 1 second = 10,000,000 * 100ns
-  uint64 usec = (time / 10) % 1000000; // 1 microsecond = 10 * 100ns
+  uint64 sec = time / 10000000;         // 1 second = 10,000,000 * 100ns
+  uint64 usec = (time / 10) % 1000000;  // 1 microsecond = 10 * 100ns
   // Store the result in user memory: [seconds, microseconds]
   *(uint64 *)addr = sec;
   *((uint64 *)addr + 1) = usec;
