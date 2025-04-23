@@ -203,34 +203,69 @@ uint64 sys_sched_yield(void)
   return 0;
 }
 
+/**
+ * @brief Get the current time of day.
+ *
+ * This system call retrieves the current time from the hardware timer and writes the result
+ * to the user-provided address. The time is split into seconds and microseconds since boot.
+ *
+ * @return uint64: Returns 0 on success, -1 on failure.
+ *
+ * @param (user pointer) arg0 (uint64*, addr): Address in user space where the result will be stored.
+ *        The result is written as two consecutive uint64 values:
+ *          - addr[0]: seconds (uint64)
+ *          - addr[1]: microseconds (uint64)
+ */
 uint64 sys_gettimeofday(void)
 {
   uint64 time;
   uint64 addr;
+  // Get the user address where the result should be stored
   if (argaddr(0, &addr) < 0)
     return -1;
+  // Read the current hardware time (in 100ns units)
   if ((time = r_time()) < 0)
     return -1;
-  uint64 sec = time / 10000000;
-  uint64 usec = (time / 10) % 1000000;
+  // Convert hardware time to seconds and microseconds
+  uint64 sec = time / 10000000;         // 1 second = 10,000,000 * 100ns
+  uint64 usec = (time / 10) % 1000000;  // 1 microsecond = 10 * 100ns
+  // Store the result in user memory: [seconds, microseconds]
   *(uint64 *)addr = sec;
   *((uint64 *)addr + 1) = usec;
   return 0;
 }
 
+/**
+ * @brief Sleep for a specified time interval (in seconds and microseconds).
+ *
+ * This system call suspends the calling process for at least the specified time.
+ * The time interval is provided as a struct (two uint64 values) in user space.
+ *
+ * @return uint64: Returns 0 on success, -1 if interrupted or on error.
+ *
+ * @param (user pointer) arg0 (uint64*, addr): Address in user space containing the sleep interval.
+ *        The interval is specified as two consecutive uint64 values:
+ *          - addr[0]: seconds (uint64)
+ *          - addr[1]: microseconds (uint64)
+ */
 uint64 sys_nanosleep(void)
 {
   uint64 addr;
+  // Get the user address where the sleep interval is stored
   if (argaddr(0, &addr) < 0)
     return -1;
+  // Read the sleep interval from user memory
   uint64 sec = *(uint64 *)addr;
   uint64 usec = *((uint64 *)addr + 1);
+  // Convert the interval to kernel ticks (each tick = 50ms, so 20 ticks = 1s)
   uint64 n = (sec * 20 + usec / 50000000);
   uint64 ticks0;
   acquire(&tickslock);
   ticks0 = ticks;
+  // Sleep until the required number of ticks has passed
   while (ticks - ticks0 < n)
   {
+    // If the process is killed, abort the sleep
     if (myproc()->killed)
     {
       release(&tickslock);
