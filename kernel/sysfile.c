@@ -594,6 +594,7 @@ fail:
 uint64
 sys_dup3(void)
 {
+  // printf("dup3\n");
   struct file *f;
   int old_fd, new_fd;
 
@@ -604,9 +605,11 @@ sys_dup3(void)
   if (argint(1, &new_fd) < 0)
     return -1;
 
-  // 检查 new_fd 是否在合法范围内
-  if (new_fd < 0 || new_fd >= NOFILE)
-    return -1;
+  // printf("old_fd: %d, new_fd: %d\n", old_fd, new_fd);
+  // printf("NOFILE: %d\n", NOFILE);
+  // // 检查 new_fd 是否在合法范围内
+  // if (new_fd < 0 || new_fd > NOFILE)
+  //   return -1;
 
   // 如果 new_fd 已经打开，先关闭它
   if (myproc()->ofile[new_fd])
