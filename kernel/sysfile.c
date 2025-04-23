@@ -622,3 +622,47 @@ sys_dup3(void)
   filedup(f);
   return new_fd;
 }
+
+uint64 sys_munmap(void)
+{
+  uint64 addr;
+  int len;
+
+  if (argaddr(0, &addr) < 0 || argint(1, &len) < 0)
+  {
+    return -1;
+  }
+
+  struct proc *p = myproc();
+  vmunmap(p->pagetable, addr, (len / PGSIZE), 0);
+  return 0;
+}
+
+uint64 sys_mmap(void)
+{
+  uint64 addr;
+  int len, prot, flags, fd, off;
+
+  if (argaddr(0, &addr) < 0 || argint(1, &len) < 0 || argint(2, &prot) < 0 || argint(3, &flags) < 0 || argint(4, &fd) < 0 || argint(5, &off))
+    return -1;
+
+  struct proc *p = myproc();
+  struct file *f = p->ofile[fd];
+  int n = len;
+
+  if (addr == 0)
+  {
+    addr = p->sz;
+    p->sz = uvmalloc(p->pagetable, p->kpagetable, p->sz, p->sz + n);
+  }
+  elock(f->ep);
+  if (n > f->ep->file_size - off)
+    n = f->ep->file_size - off;
+  if ((n = eread(f->ep, 1, addr, off, n)) < 0)
+  {
+    eunlock(f->ep);
+    return -1;
+  }
+  eunlock(f->ep);
+  return addr;
+}

@@ -124,8 +124,8 @@ extern uint64 sys_gettimeofday(void);
 extern uint64 sys_nanosleep(void);
 // extern uint64 sys_mount(void);
 // extern uint64 sys_umount(void);
-// extern uint64 sys_mmap(void);
-// extern uint64 sys_munmap(void);
+extern uint64 sys_mmap(void);
+extern uint64 sys_munmap(void);
 
 extern uint64 sys_shutdown(void);
 
@@ -168,8 +168,8 @@ static uint64 (*syscalls[])(void) = {
     [SYS_nanosleep] sys_nanosleep,
     // [SYS_mount]			sys_mount,
     // [SYS_umount]		sys_umount,
-    // [SYS_mmap]			sys_mmap,
-    // [SYS_munmap]		sys_munmap
+    [SYS_mmap]			sys_mmap,
+    [SYS_munmap]		sys_munmap
     [SYS_shutdown] sys_shutdown,
 };
 
@@ -212,8 +212,8 @@ static char *sysnames[] = {
     [SYS_nanosleep] "nanosleep",
     // [SYS_mount]			"mount",
     // [SYS_umount]		"umount",
-    // [SYS_mmap]			"mmap",
-    // [SYS_munmap]		"munmap"
+    [SYS_mmap]			"mmap",
+    [SYS_munmap]		"munmap",
     [SYS_shutdown] "shutdown",
 };
 
