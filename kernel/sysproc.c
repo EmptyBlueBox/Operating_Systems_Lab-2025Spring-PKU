@@ -100,6 +100,8 @@ sys_sbrk(void)
   if (argint(0, &n) < 0)
     return -1;
   addr = myproc()->sz;
+  if (n == 0) // n = 0，用于获取进程所占物理内存的大小
+    return addr;
   if (growproc(n) < 0)
     return -1;
   return addr;
@@ -227,8 +229,8 @@ uint64 sys_gettimeofday(void)
   if ((time = r_time()) < 0)
     return -1;
   // Convert hardware time to seconds and microseconds
-  uint64 sec = time / 10000000;         // 1 second = 10,000,000 * 100ns
-  uint64 usec = (time / 10) % 1000000;  // 1 microsecond = 10 * 100ns
+  uint64 sec = time / 10000000;        // 1 second = 10,000,000 * 100ns
+  uint64 usec = (time / 10) % 1000000; // 1 microsecond = 10 * 100ns
   // Store the result in user memory: [seconds, microseconds]
   *(uint64 *)addr = sec;
   *((uint64 *)addr + 1) = usec;
