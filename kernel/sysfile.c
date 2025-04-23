@@ -352,46 +352,63 @@ sys_readdir(void)
   return dirnext(f, p);
 }
 
-// get absolute cwd string
+/**
+ * @brief Get the absolute path of the current working directory.
+ *
+ * This system call retrieves the absolute path string of the calling process's current working directory.
+ * The path is copied to a user-provided buffer, or, if the buffer address is NULL, a buffer is allocated
+ * on the user stack. The function returns the address of the buffer containing the path.
+ *
+ * @return uint64: The user-space address of the buffer containing the absolute path string,
+ *                 or 0 (NULL) on error.
+ *
+ * Parameters (from syscall arguments):
+ *   - addr (uint64): User-space address of the buffer to store the path string, or 0 for auto-allocation.
+ *   - size (int): Size of the user-provided buffer.
+ */
 uint64
 sys_getcwd(void)
 {
-  // printf("called\n");
   struct proc *p;
   uint64 addr;
   int size;
 
+  // Fetch syscall arguments: buffer address and buffer size
   if (argaddr(0, &addr) < 0 || argint(1, &size))
-    return NULL;
+    return 0;
 
   struct dirent *de = myproc()->cwd;
   char path[FAT32_MAX_PATH];
   char *s;
   int len;
+
+  // If current directory is root, path is "/"
   if (de->parent == NULL)
   {
     s = "/";
   }
   else
   {
-    s = path + FAT32_MAX_PATH - 1; // 从后向前填充
+    // Fill the path buffer from the end backwards
+    s = path + FAT32_MAX_PATH - 1;
     *s = '\0';
     while (de->parent)
     {
       len = strlen(de->filename);
       s -= len;
-      if (s <= path) // can't reach root "/"
-        return NULL;
+      if (s <= path) // Not enough space to reach root
+        return 0;
       strncpy(s, de->filename, len);
       *--s = '/';
       de = de->parent;
     }
   }
 
-  if (addr == NULL)
+  // If addr is 0, allocate buffer on user stack
+  if (addr == 0)
   {
     p = myproc();
-    // Ensure there is enough space in the stack
+    // Check if there is enough space on the stack
     if (p->trapframe->sp < (strlen(s) + 1))
       return NULL;
     p->trapframe->sp -= strlen(s) + 1;
@@ -399,12 +416,13 @@ sys_getcwd(void)
   }
   else
   {
-    int path_length = strlen(s) + 1; // 缓冲区空间不足
+    int path_length = strlen(s) + 1;
+    // Check if user buffer is large enough
     if (size < path_length)
       return NULL;
   }
 
-  // if (copyout(myproc()->pagetable, addr, s, strlen(s) + 1) < 0)
+  // Copy the path string to user space
   if (copyout2(addr, s, strlen(s) + 1) < 0)
     return NULL;
 

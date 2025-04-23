@@ -203,28 +203,68 @@ uint64 sys_times(void)
   return tick;
 }
 
+/**
+ * @brief Wait for a specific child process to change state.
+ *
+ * This system call suspends execution of the calling process until the child process
+ * specified by pid changes state. The status of the child process is stored at the
+ * user-provided address p. The options parameter can be used to modify the behavior.
+ *
+ * @param pid (int): The process ID of the child to wait for, fetched from syscall argument 0.
+ * @param p (uint64, user pointer): User-space address to store the exit status, fetched from syscall argument 1.
+ * @param options (int): Options to modify wait behavior, fetched from syscall argument 2.
+ * @return uint64: Returns the PID of the child process that changed state, or -1 on error.
+ */
 uint64 sys_waitpid(void)
 {
   uint64 p;
   int pid, options;
+  // Fetch syscall arguments: pid, status address, and options
   if (argint(0, &pid) < 0 || argaddr(1, &p) < 0 || argint(2, &options))
     return -1;
 
+  // Call the kernel wait function with the provided arguments
   return wait(pid, p, options);
 }
 
+/**
+ * @brief Create a new process (clone).
+ *
+ * This system call creates a new process, similar to fork, but may allow for more
+ * fine-grained control over what is shared between parent and child.
+ *
+ * @return uint64: Returns the PID of the new process, or -1 on error.
+ */
 uint64 sys_clone(void)
 {
+  // Directly call the kernel clone function
   return clone();
 }
 
+/**
+ * @brief Get the parent process ID of the calling process.
+ *
+ * This system call returns the process ID of the parent of the calling process.
+ *
+ * @return uint64: Returns the PID of the parent process.
+ */
 uint64 sys_getppid(void)
 {
+  // Return the PID of the parent process
   return myproc()->parent->pid;
 }
 
+/**
+ * @brief Yield the processor voluntarily.
+ *
+ * This system call causes the calling process to yield the CPU, allowing the scheduler
+ * to run another process.
+ *
+ * @return uint64: Always returns 0.
+ */
 uint64 sys_sched_yield(void)
 {
+  // Yield the CPU to another process
   yield();
   return 0;
 }
@@ -253,8 +293,8 @@ uint64 sys_gettimeofday(void)
   if ((time = r_time()) < 0)
     return -1;
   // Convert hardware time to seconds and microseconds
-  uint64 sec = time / 10000000;         // 1 second = 10,000,000 * 100ns
-  uint64 usec = (time / 10) % 1000000;  // 1 microsecond = 10 * 100ns
+  uint64 sec = time / 10000000;        // 1 second = 10,000,000 * 100ns
+  uint64 usec = (time / 10) % 1000000; // 1 microsecond = 10 * 100ns
   // Store the result in user memory: [seconds, microseconds]
   *(uint64 *)addr = sec;
   *((uint64 *)addr + 1) = usec;
