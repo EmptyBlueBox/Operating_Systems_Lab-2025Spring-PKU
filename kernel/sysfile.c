@@ -110,15 +110,49 @@ sys_close(void)
   return 0;
 }
 
-uint64
-sys_fstat(void)
+struct kstat
 {
-  struct file *f;
-  uint64 st; // user pointer to struct stat
+  uint64 st_dev;
+  uint64 st_ino;
+  unsigned int st_mode;
+  uint32 st_nlink;
+  uint32 st_uid;
+  uint32 st_gid;
+  uint64 st_rdev;
+  unsigned long __pad;
+  long int st_size;
+  uint32 st_blksize;
+  int __pad2;
+  uint64 st_blocks;
+  long st_atime_sec;
+  long st_atime_nsec;
+  long st_mtime_sec;
+  long st_mtime_nsec;
+  long st_ctime_sec;
+  long st_ctime_nsec;
+  unsigned __unused[2];
+};
 
-  if (argfd(0, 0, &f) < 0 || argaddr(1, &st) < 0)
+uint64 sys_fstat(void)
+{
+  int fd;
+  uint64 addr;
+  if (argint(0, &fd) < 0 || argaddr(1, &addr) < 0)
     return -1;
-  return filestat(f, st);
+  struct proc *p = myproc();
+  struct file *f = p->ofile[fd];
+  struct dirent *ep = f->ep;
+  struct kstat *st = {0};
+  st->st_dev = ep->dev;
+  st->st_ino = 0;
+  st->st_mode = (ep->attribute & ATTR_DIRECTORY) ? T_DIR : T_FILE;
+  st->st_nlink = f->ref;
+  st->st_size = ep->file_size;
+  // st->st_atime_sec = ep->atime / 10000000;
+  // st->st_mtime_sec = ep->mtime / 10000000;
+  // st->st_ctime_sec = ep->ctime / 10000000;
+  *(struct kstat *)addr = *st;
+  return 0;
 }
 
 static struct dirent *
