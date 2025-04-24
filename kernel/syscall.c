@@ -157,7 +157,7 @@ static uint64 (*syscalls[])(void) = {
     [SYS_trace] sys_trace,
     [SYS_sysinfo] sys_sysinfo,
     [SYS_rename] sys_rename,
-    [SYS_dup3]        sys_dup3,
+    [SYS_dup3] sys_dup3,
     [SYS_getppid] sys_getppid,
     [SYS_clone] sys_clone,
     // [SYS_getdents]    sys_getdents,
@@ -168,8 +168,8 @@ static uint64 (*syscalls[])(void) = {
     [SYS_nanosleep] sys_nanosleep,
     // [SYS_mount]			sys_mount,
     // [SYS_umount]		sys_umount,
-    [SYS_mmap]			sys_mmap,
-    [SYS_munmap]		sys_munmap
+    [SYS_mmap] sys_mmap,
+    [SYS_munmap] sys_munmap,
     [SYS_shutdown] sys_shutdown,
 };
 
@@ -201,7 +201,7 @@ static char *sysnames[] = {
     [SYS_trace] "trace",
     [SYS_sysinfo] "sysinfo",
     [SYS_rename] "rename",
-    [SYS_dup3]        "dup3",
+    [SYS_dup3] "dup3",
     [SYS_getppid] "getppid",
     [SYS_clone] "clone",
     // [SYS_getdents]    "getdents",
@@ -212,8 +212,8 @@ static char *sysnames[] = {
     [SYS_nanosleep] "nanosleep",
     // [SYS_mount]			"mount",
     // [SYS_umount]		"umount",
-    [SYS_mmap]			"mmap",
-    [SYS_munmap]		"munmap",
+    [SYS_mmap] "mmap",
+    [SYS_munmap] "munmap",
     [SYS_shutdown] "shutdown",
 };
 

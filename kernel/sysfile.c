@@ -607,9 +607,9 @@ sys_dup3(void)
 
   // printf("old_fd: %d, new_fd: %d\n", old_fd, new_fd);
   // printf("NOFILE: %d\n", NOFILE);
-  // // 检查 new_fd 是否在合法范围内
-  // if (new_fd < 0 || new_fd > NOFILE)
-  //   return -1;
+  // 检查 new_fd 是否在合法范围内
+  if (new_fd < 0 || new_fd > NOFILE)
+    return -1;
 
   // 如果 new_fd 已经打开，先关闭它
   if (myproc()->ofile[new_fd])
@@ -649,6 +649,12 @@ uint64 sys_mmap(void)
   struct proc *p = myproc();
   struct file *f = p->ofile[fd];
   int n = len;
+
+  // Check if the file descriptor is valid and refers to a mappable file type
+  if (f == NULL || f->type != FD_ENTRY || f->ep == NULL)
+  {
+    return -1; // Invalid file descriptor or not a directory entry
+  }
 
   if (addr == 0)
   {
