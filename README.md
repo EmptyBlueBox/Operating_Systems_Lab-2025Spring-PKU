@@ -126,3 +126,10 @@ make run
     init: exec yield failed
     ```
     - Problem with `Makefile`, you should use `@cp -R tests/* $(dst)` instead of `@cp -R tests $(dst)`, otherwise it'll copy the folder and cause the local test not running.
+
+- The following system calls are currently not working or failing their tests:
+    - `mmap`
+    - `munmap`
+    - `openat`
+    - `unlink`
+    - `close`
