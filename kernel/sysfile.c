@@ -930,9 +930,10 @@ sys_dup3(void)
 /**
  * Unmap a memory region previously mapped by mmap.
  *
+ * @param void
  * @return uint64: Returns 0 on success, -1 on failure.
  *
- * 解除内存映射区域。
+ * 解除由 mmap 映射的内存区域。
  * 参数说明：
  *   - addr (uint64): 要解除映射的起始虚拟地址
  *   - len (int): 要解除映射的长度（字节数）
@@ -944,14 +945,32 @@ uint64 sys_munmap(void)
   uint64 addr;
   int len;
 
-  // 获取参数，若有错误则返回-1
+  // 获取参数，若获取失败则返回-1
   if (argaddr(0, &addr) < 0 || argint(1, &len) < 0 || len <= 0)
+  {
+    // 参数无效
     return -1;
+  }
+
+  // 检查地址是否页对齐
+  if (addr % PGSIZE != 0)
+  {
+    // 地址未对齐
+    return -1;
+  }
 
   struct proc *p = myproc();
 
-  // 计算需要解除映射的页数，向上取整
-  int npages = (len + PGSIZE - 1) / PGSIZE;
+  // 计算需要解除映射的页数
+  int npages = len / PGSIZE;
+  // 检查解除映射范围是否越界
+  if (addr + (uint64)len > p->sz)
+  {
+    // 超出进程地址空间
+    return -1;
+  }
+
+  // 解除映射，不释放物理内存
   vmunmap(p->pagetable, addr, npages, 0);
 
   return 0;
