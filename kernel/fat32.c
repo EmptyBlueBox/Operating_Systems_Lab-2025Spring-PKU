@@ -1097,46 +1097,78 @@ struct dirent *enameparent(char *path, char *name)
     return lookup_path(path, 1, name);
 }
 
+/**
+ * 获取指定目录下的所有目录项信息，填充到用户缓冲区，兼容 Linux getdents64。
+ *
+ * @param parent (struct dirent*): 目录的父目录项指针
+ * @param buf (uint64): 用户空间缓冲区地址
+ * @param len (int): 缓冲区长度（字节数）
+ * @return uint64: 实际写入的字节数，失败返回-1
+ */
 uint64 getdents64(struct dirent *parent, uint64 buf, int len)
 {
-    int num = 0;
-    int lock = 0;
+    // 记录已写入的目录项数量
+    int count = 0;
+    // 单个目录项结构体长度
     int dirlen = sizeof(struct dirall);
     struct dirall label;
     struct dirent *ep;
+
+    // 预设目录项的偏移和长度
     label.off = dirlen;
     label.reclen = dirlen;
 
+    // 记录当前已写入的总字节数
+    int written = 0;
+
+    // 加锁目录项缓存，保证遍历安全
     acquire(&ecache.lock);
+
+    // 遍历所有目录项，查找属于 parent 的有效目录项
     for (ep = root.next; ep != &root; ep = ep->next)
-    { // LRU algo
+    {
+        // 只处理有效且父目录为 parent 的目录项
         if (ep->valid == 1 && ep->parent == parent)
         {
-            label.inode = num++;
-            if (ep->ref > 0)
+            // 检查剩余缓冲区是否足够存放一个目录项
+            if (written + dirlen > len)
             {
-                elock(ep);
-                lock = 1;
+                // 缓冲区已满，返回已写入的字节数
+                release(&ecache.lock);
+                return written;
             }
+
+            // 填充目录项信息
+            label.inode = count; // 这里可根据实际 inode 号赋值
             label.type = ep->attribute;
             strncpy(label.name, ep->filename, FAT32_MAX_FILENAME);
-            if (lock)
+
+            // 如果目录项被引用，先加锁
+            if (ep->ref > 0)
+                elock(ep);
+
+            // 拷贝目录项到用户空间
+            if (copyout2(buf + written, (char *)&label, dirlen) < 0)
             {
-                eunlock(ep);
-                lock = 0;
-            }
-            if (copyout2(buf, (char *)&label, dirlen) < 0)
-            {
+                // 拷贝失败，解锁并返回错误
+                if (ep->ref > 0)
+                    eunlock(ep);
                 release(&ecache.lock);
                 return -1;
             }
-            if (len < num * dirlen)
-            {
-                release(&ecache.lock);
-                return num * dirlen;
-            }
+
+            // 解锁目录项
+            if (ep->ref > 0)
+                eunlock(ep);
+
+            written += dirlen;
+            count++;
         }
     }
+
+    // 解锁目录项缓存
     release(&ecache.lock);
-    return 0;
+
+    // 返回实际写入的字节数
+    return written;
 }

@@ -928,62 +928,104 @@ sys_dup3(void)
 }
 
 /**
- * 解除内存映射。
+ * Unmap a memory region previously mapped by mmap.
  *
- * @return uint64: 成功返回0，失败返回-1。
+ * @return uint64: Returns 0 on success, -1 on failure.
+ *
+ * 解除内存映射区域。
+ * 参数说明：
+ *   - addr (uint64): 要解除映射的起始虚拟地址
+ *   - len (int): 要解除映射的长度（字节数）
+ * 返回值：
+ *   - uint64: 成功返回0，失败返回-1
  */
 uint64 sys_munmap(void)
 {
   uint64 addr;
   int len;
 
-  if (argaddr(0, &addr) < 0 || argint(1, &len) < 0)
-  {
+  // 获取参数，若有错误则返回-1
+  if (argaddr(0, &addr) < 0 || argint(1, &len) < 0 || len <= 0)
     return -1;
-  }
 
   struct proc *p = myproc();
-  vmunmap(p->pagetable, addr, (len / PGSIZE), 0);
+
+  // 计算需要解除映射的页数，向上取整
+  int npages = (len + PGSIZE - 1) / PGSIZE;
+  vmunmap(p->pagetable, addr, npages, 0);
+
   return 0;
 }
 
 /**
- * 内存映射文件。
+ * Map a file or anonymous memory into the process's address space.
  *
- * @return uint64: 成功返回映射的地址，失败返回-1。
+ * @return uint64: Returns the mapped address on success, -1 on failure.
+ *
+ * 内存映射文件或匿名内存到进程地址空间。
+ * 参数说明：
+ *   - addr (uint64): 建议的映射起始地址（0表示自动分配）
+ *   - len (int): 映射长度（字节数）
+ *   - prot (int): 保护标志（暂未使用）
+ *   - flags (int): 映射标志（暂未使用）
+ *   - fd (int): 文件描述符
+ *   - off (int): 文件偏移量
+ * 返回值：
+ *   - uint64: 成功返回映射的虚拟地址，失败返回-1
  */
 uint64 sys_mmap(void)
 {
   uint64 addr;
   int len, prot, flags, fd, off;
 
-  if (argaddr(0, &addr) < 0 || argint(1, &len) < 0 || argint(2, &prot) < 0 || argint(3, &flags) < 0 || argint(4, &fd) < 0 || argint(5, &off))
+  // 获取参数，若有错误则返回-1
+  if (argaddr(0, &addr) < 0 ||
+      argint(1, &len) < 0 || len <= 0 ||
+      argint(2, &prot) < 0 ||
+      argint(3, &flags) < 0 ||
+      argint(4, &fd) < 0 ||
+      argint(5, &off) < 0)
     return -1;
 
   struct proc *p = myproc();
+
+  // 检查文件描述符合法性
+  if (fd < 0 || fd >= NOFILE)
+    return -1;
   struct file *f = p->ofile[fd];
-  int n = len;
-
-  // Check if the file descriptor is valid and refers to a mappable file type
   if (f == NULL || f->type != FD_ENTRY || f->ep == NULL)
-  {
-    return -1; // Invalid file descriptor or not a directory entry
-  }
+    return -1;
 
+  // 如果未指定地址，则自动分配在进程末尾
   if (addr == 0)
   {
-    addr = p->sz;
-    p->sz = uvmalloc(p->pagetable, p->kpagetable, p->sz, p->sz + n);
+    addr = PGROUNDUP(p->sz);
+    uint64 new_sz = addr + len;
+    if (uvmalloc(p->pagetable, p->kpagetable, p->sz, new_sz) == 0)
+      return -1;
+    p->sz = new_sz;
   }
-  elock(f->ep);
-  if (n > f->ep->file_size - off)
-    n = f->ep->file_size - off;
-  if ((n = eread(f->ep, 1, addr, off, n)) < 0)
-  {
-    eunlock(f->ep);
+
+  // 计算实际可映射的长度，防止越界
+  int max_map = f->ep->file_size - off;
+  int map_len = (len > max_map) ? max_map : len;
+  if (map_len <= 0)
     return -1;
-  }
+
+  // 加锁文件目录项，读取数据到映射区域
+  elock(f->ep);
+  int read_bytes = eread(f->ep, 1, addr, off, map_len);
   eunlock(f->ep);
+
+  if (read_bytes < 0)
+    return -1;
+
+  // 若映射长度大于实际读取长度，补零
+  if (read_bytes < len)
+  {
+    memset((void *)(addr + read_bytes), 0, len - read_bytes);
+  }
+
   return addr;
 }
 
@@ -1020,9 +1062,17 @@ uint64 sys_getdents(void)
 }
 
 /**
- * 删除文件或目录（实现 unlinkat 功能）。
+ * Remove a file or directory (implements unlinkat functionality).
  *
- * @return uint64: 成功返回0，失败返回-1。
+ * @return uint64: Returns 0 on success, -1 on failure.
+ *
+ * 删除文件或目录（兼容 unlinkat 行为）。
+ * 参数说明：
+ *   - dirfd (int): 目录文件描述符，决定路径的解析基准
+ *   - path (char[], FAT32_MAX_PATH): 目标路径
+ *   - flags (int): 标志位，支持 AT_REMOVEDIR
+ * 返回值：
+ *   - uint64: 成功返回0，失败返回-1
  */
 uint64 sys_unlink(void)
 {
@@ -1030,37 +1080,85 @@ uint64 sys_unlink(void)
   char path[FAT32_MAX_PATH];
 
   // 获取参数，若有错误则返回-1
-  if (argint(0, &dirfd) < 0 || argstr(1, path, FAT32_MAX_PATH) < 0 || argint(2, &flags) < 0)
+  if (argint(0, &dirfd) < 0 ||
+      argstr(1, path, FAT32_MAX_PATH) < 0 ||
+      argint(2, &flags) < 0)
   {
-    printf("error in unlinkat\n");
+    printf("error in unlinkat: invalid arguments\n");
     return -1;
   }
 
-  // 解析路径
+  // 路径不能为空
+  if (*path == '\0')
+  {
+    printf("error in unlinkat: empty path\n");
+    return -1;
+  }
+
+  // 解析路径，支持相对/绝对路径
   if (get_path(path, dirfd) < 0)
   {
-    printf("wrong path\n");
+    printf("error in unlinkat: invalid path\n");
     return -1;
   }
 
-  struct dirent *ep;
-  // 查找目录项
-  if ((ep = ename(path)) == NULL)
+  struct dirent *ep = NULL;
+  // 查找目标目录项
+  ep = ename(path);
+  if (ep == NULL)
   {
+    printf("error in unlinkat: target not found\n");
     return -1;
   }
-  elock(ep);
-  // 如果是目录，且不为空或标志位不正确，则不能删除
-  if ((ep->attribute & ATTR_DIRECTORY) && ((!isdirempty(ep) && (flags & AT_REMOVEDIR) != 0) || (flags & AT_REMOVEDIR) == 0))
+
+  elock(ep); // 加锁目标目录项
+
+  // 判断是否为目录
+  int isdir = (ep->attribute & ATTR_DIRECTORY) ? 1 : 0;
+
+  // 针对目录的特殊处理
+  if (isdir)
   {
-    eunlock(ep);
-    eput(ep);
-    return -1;
+    // 必须指定 AT_REMOVEDIR 才能删除目录
+    if ((flags & AT_REMOVEDIR) == 0)
+    {
+      eunlock(ep);
+      eput(ep);
+      printf("error in unlinkat: must use AT_REMOVEDIR to remove directory\n");
+      return -1;
+    }
+    // 目录必须为空才能删除
+    if (!isdirempty(ep))
+    {
+      eunlock(ep);
+      eput(ep);
+      printf("error in unlinkat: directory not empty\n");
+      return -1;
+    }
   }
+  else
+  {
+    // 非目录时，不能指定 AT_REMOVEDIR
+    if ((flags & AT_REMOVEDIR) != 0)
+    {
+      eunlock(ep);
+      eput(ep);
+      printf("error in unlinkat: not a directory but AT_REMOVEDIR set\n");
+      return -1;
+    }
+  }
+
   // 加锁父目录，防止并发删除
-  elock(ep->parent); // 这里可能会导致死锁
-  eremove(ep);       // 删除目录项
-  eunlock(ep->parent);
+  struct dirent *parent = ep->parent;
+  if (parent)
+    elock(parent);
+
+  // 删除目录项
+  eremove(ep);
+
+  if (parent)
+    eunlock(parent);
+
   eunlock(ep);
   eput(ep);
 
