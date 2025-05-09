@@ -20,8 +20,100 @@
 #include "include/printf.h"
 #include "include/vm.h"
 
-// Fetch the nth word-sized system call argument as a file descriptor
-// and return both the descriptor and the corresponding struct file.
+/**
+ * 获取当前目录的绝对路径。
+ *
+ * @param cwd (struct dirent*): 当前目录项指针。
+ * @param path (char*): 用于存储绝对路径的缓冲区。
+ * @return int: 成功返回0，失败返回-1。
+ */
+int get_abspath(struct dirent *cwd, char *path)
+{
+  if (path == NULL)
+    return -1;
+  strncpy(path, cwd->filename, FAT32_MAX_FILENAME + 1);
+  char temp[FAT32_MAX_FILENAME];
+  while (cwd->parent != NULL)
+  {
+    cwd = cwd->parent;
+    strncpy(temp, cwd->filename, FAT32_MAX_FILENAME);
+    if (temp == NULL)
+      return -1;
+    str_mycat(temp, "/", FAT32_MAX_FILENAME);
+    str_mycat(temp, path, FAT32_MAX_FILENAME);
+    strncpy(path, temp, FAT32_MAX_FILENAME);
+    if (path == NULL)
+      return -1;
+  }
+  return 0;
+}
+
+/**
+ * 根据文件描述符和路径名获取绝对路径。
+ *
+ * @param path (char*): 路径缓冲区。
+ * @param fd (int): 文件描述符。
+ * @return int: 成功返回0，失败返回-1。
+ */
+int get_path(char *path, int fd)
+{
+  if (path == NULL)
+  {
+    printf("path == null\n");
+    return -1;
+  }
+
+  if (path[0] == '/')
+  {
+    return 0;
+  }
+  else if (fd == AT_FDCWD)
+  {
+    struct proc *current_proc = myproc();
+    struct dirent *cwd = current_proc->cwd;
+    char parent_name[FAT32_MAX_FILENAME + 1];
+    if (get_abspath(cwd, parent_name) < 0)
+    {
+      printf("wrong path\n");
+      return -1;
+    }
+    str_mycat(parent_name, "/", FAT32_MAX_FILENAME);
+    str_mycat(parent_name, path, FAT32_MAX_FILENAME);
+    strncpy(path, parent_name, FAT32_MAX_FILENAME);
+    return 0;
+  }
+  else
+  {
+    if (fd < 0)
+      return -1;
+
+    struct proc *current_proc = myproc();
+    struct file *f = current_proc->ofile[fd];
+    if (f == 0)
+      return -1;
+
+    struct dirent *cwd = f->ep;
+    char dirname[FAT32_MAX_FILENAME + 1];
+    if (get_abspath(cwd, dirname) < 0)
+    {
+      printf("wrong path\n");
+      return -1;
+    }
+    str_mycat(dirname, "/", FAT32_MAX_FILENAME);
+    str_mycat(dirname, path, FAT32_MAX_FILENAME);
+    strncpy(path, dirname, FAT32_MAX_FILENAME);
+    return 0;
+  }
+}
+
+/**
+ * 获取第 n 个系统调用参数作为文件描述符，并返回对应的 struct file 指针。
+ *
+ * @param n (int): 参数索引。
+ * @param pfd (int*): 用于返回文件描述符的指针。
+ * @param pf (struct file**): 用于返回 struct file 指针的指针。
+ * @return int: 成功返回0，失败返回-1。
+ */
 static int
 argfd(int n, int *pfd, struct file **pf)
 {
@@ -39,8 +131,12 @@ argfd(int n, int *pfd, struct file **pf)
   return 0;
 }
 
-// Allocate a file descriptor for the given file.
-// Takes over file reference from caller on success.
+/**
+ * 为给定的文件分配一个文件描述符。
+ *
+ * @param f (struct file*): 文件结构体指针。
+ * @return int: 成功返回文件描述符，失败返回-1。
+ */
 static int
 fdalloc(struct file *f)
 {
@@ -58,6 +154,11 @@ fdalloc(struct file *f)
   return -1;
 }
 
+/**
+ * 复制一个文件描述符。
+ *
+ * @return uint64: 新的文件描述符，失败返回-1。
+ */
 uint64
 sys_dup(void)
 {
@@ -72,6 +173,11 @@ sys_dup(void)
   return fd;
 }
 
+/**
+ * 从文件中读取数据。
+ *
+ * @return uint64: 实际读取的字节数，失败返回-1。
+ */
 uint64
 sys_read(void)
 {
@@ -84,6 +190,11 @@ sys_read(void)
   return fileread(f, p, n);
 }
 
+/**
+ * 向文件写入数据。
+ *
+ * @return uint64: 实际写入的字节数，失败返回-1。
+ */
 uint64
 sys_write(void)
 {
@@ -97,6 +208,11 @@ sys_write(void)
   return filewrite(f, p, n);
 }
 
+/**
+ * 关闭一个文件描述符。
+ *
+ * @return uint64: 成功返回0，失败返回-1。
+ */
 uint64
 sys_close(void)
 {
@@ -104,7 +220,10 @@ sys_close(void)
   struct file *f;
 
   if (argfd(0, &fd, &f) < 0)
+  {
+    printf("close fd: %d\n", argfd(0, &fd, &f));
     return -1;
+  }
   myproc()->ofile[fd] = 0;
   fileclose(f);
   return 0;
@@ -133,6 +252,11 @@ struct kstat
   unsigned __unused[2];
 };
 
+/**
+ * 获取文件状态信息。
+ *
+ * @return uint64: 成功返回0，失败返回-1。
+ */
 uint64 sys_fstat(void)
 {
   int fd;
@@ -155,6 +279,14 @@ uint64 sys_fstat(void)
   return 0;
 }
 
+/**
+ * 创建一个新的目录项（文件或目录）。
+ *
+ * @param path (char*): 路径。
+ * @param type (short): 类型（T_FILE 或 T_DIR）。
+ * @param mode (int): 模式。
+ * @return struct dirent*: 成功返回新目录项指针，失败返回NULL。
+ */
 static struct dirent *
 create(char *path, short type, int mode)
 {
@@ -201,6 +333,11 @@ create(char *path, short type, int mode)
   return ep;
 }
 
+/**
+ * 打开一个文件。
+ *
+ * @return uint64: 成功返回文件描述符，失败返回-1。
+ */
 uint64
 sys_open(void)
 {
@@ -262,6 +399,90 @@ sys_open(void)
   return fd;
 }
 
+/**
+ * 以指定目录为基础打开文件。
+ *
+ * @return uint64: 成功返回文件描述符，失败返回-1。
+ */
+uint64 sys_openat(void)
+{
+  int fd;
+  char path[FAT32_MAX_PATH];
+  int flags;
+  int mode;
+  struct dirent *ep;
+  struct file *f;
+  if (argint(0, &fd) < 0 || argstr(1, path, FAT32_MAX_PATH) < 0 || argint(2, &flags) < 0 || argint(3, &mode) < 0)
+    return -1;
+  if (*path == '\0')
+    return -1;
+
+  if (get_path(path, fd) < 0)
+  {
+    printf("error in openat\n");
+    return -1;
+  }
+
+  int new_fd;
+  if (flags & O_CREATE)
+  {
+    ep = create(path, T_FILE, flags);
+    if (ep == NULL)
+    {
+      printf("creat null: %d\n", flags);
+      return -1;
+    }
+  }
+  else
+  {
+    if ((ep = ename(path)) == NULL)
+    {
+      return -1;
+    }
+    elock(ep);
+    if ((ep->attribute & ATTR_DIRECTORY) && (flags & O_WRONLY))
+    {
+      eunlock(ep);
+      eput(ep);
+      printf("show O_DIRECTORY: %d \n", flags);
+      printf("abs_path=%s\n", path);
+      return -1;
+    }
+  }
+
+  if ((f = filealloc()) == NULL || (new_fd = fdalloc(f)) < 0)
+  {
+    if (f)
+    {
+      fileclose(f);
+    }
+    eunlock(ep);
+    eput(ep);
+    printf("unable to open: %d\n", flags);
+    return -1;
+  }
+
+  if (!(ep->attribute & ATTR_DIRECTORY) && (flags & O_TRUNC))
+  {
+    etrunc(ep);
+  }
+
+  f->type = FD_ENTRY;
+  f->off = (flags & O_APPEND) ? ep->file_size : 0;
+  f->ep = ep;
+  f->readable = !(flags & O_WRONLY);
+  f->writable = (flags & O_WRONLY) || (flags & O_RDWR);
+
+  eunlock(ep);
+
+  return new_fd;
+}
+
+/**
+ * 创建一个目录。
+ *
+ * @return uint64: 成功返回0，失败返回-1。
+ */
 uint64
 sys_mkdir(void)
 {
@@ -277,6 +498,44 @@ sys_mkdir(void)
   return 0;
 }
 
+/**
+ * 以指定目录为基础创建目录。
+ *
+ * @return uint64: 成功返回0，失败返回-1。
+ */
+uint64
+sys_mkdirat(void)
+{
+  int dirfd;
+  char path[FAT32_MAX_PATH];
+  int mode;
+  if (argint(0, &dirfd) < 0 || argstr(1, path, FAT32_MAX_PATH) < 0 || argint(2, &mode) < 0)
+  {
+    printf("wrong input\n");
+    return -1;
+  }
+
+  if (*path == '\0')
+    return -1;
+
+  if (get_path(path, dirfd) < 0)
+  {
+    printf("error in mkdirat\n");
+    return -1;
+  }
+
+  struct dirent *ep;
+  ep = create(path, T_DIR, 0);
+  eunlock(ep);
+  eput(ep);
+  return 0;
+}
+
+/**
+ * 切换当前工作目录。
+ *
+ * @return uint64: 成功返回0，失败返回-1。
+ */
 uint64
 sys_chdir(void)
 {
@@ -301,32 +560,41 @@ sys_chdir(void)
   return 0;
 }
 
+/**
+ * 创建管道并返回两个文件描述符。
+ *
+ * @return uint64: 成功返回0，失败返回-1。
+ */
 uint64
 sys_pipe(void)
 {
-  uint64 fdarray; // user pointer to array of two integers
-  struct file *rf, *wf;
-  int fd0, fd1;
-  struct proc *p = myproc();
+  uint64 fdarray;            // 用户空间的指针，指向两个整数的数组
+  struct file *rf, *wf;      // rf: 读端文件结构指针, wf: 写端文件结构指针
+  int fd0, fd1;              // fd0: 读端文件描述符, fd1: 写端文件描述符
+  struct proc *p = myproc(); // 当前进程指针
 
+  // 获取用户传入的 fdarray 参数
   if (argaddr(0, &fdarray) < 0)
     return -1;
+  // 分配管道的读写 file 结构
   if (pipealloc(&rf, &wf) < 0)
     return -1;
   fd0 = -1;
+  // 分配读端和写端的文件描述符
   if ((fd0 = fdalloc(rf)) < 0 || (fd1 = fdalloc(wf)) < 0)
   {
+    // 如果只分配了读端描述符，回收
     if (fd0 >= 0)
       p->ofile[fd0] = 0;
     fileclose(rf);
     fileclose(wf);
     return -1;
   }
-  // if(copyout(p->pagetable, fdarray, (char*)&fd0, sizeof(fd0)) < 0 ||
-  //    copyout(p->pagetable, fdarray+sizeof(fd0), (char *)&fd1, sizeof(fd1)) < 0){
+  // 将文件描述符写回用户空间
   if (copyout2(fdarray, (char *)&fd0, sizeof(fd0)) < 0 ||
       copyout2(fdarray + sizeof(fd0), (char *)&fd1, sizeof(fd1)) < 0)
   {
+    // 回收已分配的文件描述符和 file 结构
     p->ofile[fd0] = 0;
     p->ofile[fd1] = 0;
     fileclose(rf);
@@ -336,7 +604,11 @@ sys_pipe(void)
   return 0;
 }
 
-// To open console device.
+/**
+ * 打开控制台设备。
+ *
+ * @return uint64: 成功返回文件描述符，失败返回-1。
+ */
 uint64
 sys_dev(void)
 {
@@ -374,7 +646,11 @@ sys_dev(void)
   return fd;
 }
 
-// To support ls command
+/**
+ * 读取目录项（支持 ls 命令）。
+ *
+ * @return uint64: 成功返回0，失败返回-1。
+ */
 uint64
 sys_readdir(void)
 {
@@ -387,18 +663,9 @@ sys_readdir(void)
 }
 
 /**
- * @brief Get the absolute path of the current working directory.
+ * 获取当前工作目录的绝对路径。
  *
- * This system call retrieves the absolute path string of the calling process's current working directory.
- * The path is copied to a user-provided buffer, or, if the buffer address is NULL, a buffer is allocated
- * on the user stack. The function returns the address of the buffer containing the path.
- *
- * @return uint64: The user-space address of the buffer containing the absolute path string,
- *                 or 0 (NULL) on error.
- *
- * Parameters (from syscall arguments):
- *   - addr (uint64): User-space address of the buffer to store the path string, or 0 for auto-allocation.
- *   - size (int): Size of the user-provided buffer.
+ * @return uint64: 成功返回路径字符串的用户空间地址，失败返回0。
  */
 uint64
 sys_getcwd(void)
@@ -463,7 +730,12 @@ sys_getcwd(void)
   return addr;
 }
 
-// Is the directory dp empty except for "." and ".." ?
+/**
+ * 判断目录是否为空（只包含 . 和 ..）。
+ *
+ * @param dp (struct dirent*): 目录项指针。
+ * @return int: 空返回1，否则返回0。
+ */
 static int
 isdirempty(struct dirent *dp)
 {
@@ -475,6 +747,11 @@ isdirempty(struct dirent *dp)
   return ret == -1;
 }
 
+/**
+ * 删除文件或目录。
+ *
+ * @return uint64: 成功返回0，失败返回-1。
+ */
 uint64
 sys_remove(void)
 {
@@ -514,8 +791,11 @@ sys_remove(void)
   return 0;
 }
 
-// Must hold too many locks at a time! It's possible to raise a deadlock.
-// Because this op takes some steps, we can't promise
+/**
+ * 重命名文件或目录。
+ *
+ * @return uint64: 成功返回0，失败返回-1。
+ */
 uint64
 sys_rename(void)
 {
@@ -611,19 +891,9 @@ fail:
 }
 
 /**
- * sys_dup3 - Duplicate a file descriptor to a specified new descriptor.
+ * 复制文件描述符到指定的新描述符。
  *
- * This system call duplicates the file descriptor old_fd to new_fd.
- * If new_fd is already open, it will be closed first.
- * Returns the new file descriptor on success, or -1 on error.
- *
- * Parameters:
- *   - old_fd (int): The source file descriptor to duplicate, fetched from the first syscall argument.
- *   - new_fd (int): The target file descriptor, fetched from the second syscall argument.
- *
- * Returns:
- *   - (uint64) The new file descriptor (new_fd) on success.
- *   - (uint64) -1 on error.
+ * @return uint64: 成功返回新文件描述符，失败返回-1。
  */
 uint64
 sys_dup3(void)
@@ -657,6 +927,11 @@ sys_dup3(void)
   return new_fd;
 }
 
+/**
+ * 解除内存映射。
+ *
+ * @return uint64: 成功返回0，失败返回-1。
+ */
 uint64 sys_munmap(void)
 {
   uint64 addr;
@@ -672,6 +947,11 @@ uint64 sys_munmap(void)
   return 0;
 }
 
+/**
+ * 内存映射文件。
+ *
+ * @return uint64: 成功返回映射的地址，失败返回-1。
+ */
 uint64 sys_mmap(void)
 {
   uint64 addr;
@@ -705,4 +985,141 @@ uint64 sys_mmap(void)
   }
   eunlock(f->ep);
   return addr;
+}
+
+// 兼容 Linux 的目录项结构体
+struct linux_dirent64
+{
+  uint64 d_ino;            // inode 号
+  uint64 d_off;            // 下一个目录项的偏移
+  unsigned short d_reclen; // 目录项长度
+  unsigned char d_type;    // 文件类型
+  char d_name[];           // 文件名
+};
+
+/**
+ * 获取目录项信息，类似于 Linux 的 getdents64。
+ *
+ * @return uint64: 实际读取的字节数，失败返回-1。
+ */
+uint64 sys_getdents(void)
+{
+  int fd, len;
+  uint64 buf;
+
+  // 获取参数，若有错误则返回-1
+  if (argint(0, &fd) < 0 || argaddr(1, &buf) < 0 || argint(2, &len) < 0)
+    return -1;
+
+  struct proc *p = myproc();
+  struct file *f = p->ofile[fd];
+  struct dirent *ep = f->ep;
+
+  // 调用 getdents64 获取目录项
+  return getdents64(ep, buf, len);
+}
+
+/**
+ * 删除文件或目录（实现 unlinkat 功能）。
+ *
+ * @return uint64: 成功返回0，失败返回-1。
+ */
+uint64 sys_unlink(void)
+{
+  int dirfd, flags;
+  char path[FAT32_MAX_PATH];
+
+  // 获取参数，若有错误则返回-1
+  if (argint(0, &dirfd) < 0 || argstr(1, path, FAT32_MAX_PATH) < 0 || argint(2, &flags) < 0)
+  {
+    printf("error in unlinkat\n");
+    return -1;
+  }
+
+  // 解析路径
+  if (get_path(path, dirfd) < 0)
+  {
+    printf("wrong path\n");
+    return -1;
+  }
+
+  struct dirent *ep;
+  // 查找目录项
+  if ((ep = ename(path)) == NULL)
+  {
+    return -1;
+  }
+  elock(ep);
+  // 如果是目录，且不为空或标志位不正确，则不能删除
+  if ((ep->attribute & ATTR_DIRECTORY) && ((!isdirempty(ep) && (flags & AT_REMOVEDIR) != 0) || (flags & AT_REMOVEDIR) == 0))
+  {
+    eunlock(ep);
+    eput(ep);
+    return -1;
+  }
+  // 加锁父目录，防止并发删除
+  elock(ep->parent); // 这里可能会导致死锁
+  eremove(ep);       // 删除目录项
+  eunlock(ep->parent);
+  eunlock(ep);
+  eput(ep);
+
+  return 0;
+}
+
+/**
+ * 挂载文件系统。
+ *
+ * @return uint64: 成功返回0，失败返回-1。
+ */
+uint64 sys_mount(void)
+{
+  char special[FAT32_MAX_PATH], dir[FAT32_MAX_PATH], fstype[FAT32_MAX_PATH];
+  uint64 flags, data;
+  struct dirent *di;
+
+  // 获取参数，若有错误则返回-1
+  if (argstr(0, special, FAT32_MAX_PATH) < 0 || argstr(1, dir, FAT32_MAX_PATH) < 0 || argstr(2, fstype, FAT32_MAX_PATH) < 0 || argaddr(3, &flags) < 0 || argaddr(4, &data))
+    return -1;
+
+  // 只支持 vfat 文件系统
+  if (strncmp((char *)fstype, "vfat", 5))
+  {
+    printf("wrong file type\n");
+    return -1;
+  }
+
+  // 查找挂载点目录
+  if ((di = ename(dir)) == NULL)
+  {
+    return -1;
+  }
+
+  // 实际挂载操作未实现
+  return 0;
+}
+
+/**
+ * 卸载文件系统。
+ *
+ * @return uint64: 成功返回0，失败返回-1。
+ */
+uint64 sys_umount(void)
+{
+  char special[FAT32_MAX_PATH];
+  uint64 flags;
+  struct dirent *sp;
+
+  // 获取参数，若有错误则返回-1
+  if (argstr(0, special, FAT32_MAX_PATH) < 0 || argaddr(1, &flags) < 0)
+    return -1;
+
+  // 查找设备目录项
+  if ((sp = ename(special)) == NULL)
+  {
+    return -1;
+  }
+
+  // 实际卸载操作未实现
+  return 0;
 }

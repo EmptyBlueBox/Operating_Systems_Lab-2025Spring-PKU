@@ -96,7 +96,9 @@ extern uint64 sys_fstat(void);
 extern uint64 sys_getpid(void);
 extern uint64 sys_kill(void);
 extern uint64 sys_mkdir(void);
+extern uint64 sys_mkdirat(void);
 extern uint64 sys_open(void);
+extern uint64 sys_openat(void);
 extern uint64 sys_pipe(void);
 extern uint64 sys_read(void);
 extern uint64 sys_sbrk(void);
@@ -116,14 +118,14 @@ extern uint64 sys_rename(void);
 extern uint64 sys_dup3(void);
 extern uint64 sys_getppid(void);
 extern uint64 sys_clone(void);
-// extern uint64 sys_getdents(void);
+extern uint64 sys_getdents(void);
 extern uint64 sys_sched_yield(void);
 extern uint64 sys_uname(void);
-// extern uint64 sys_unlink(void);
+extern uint64 sys_unlink(void);
 extern uint64 sys_gettimeofday(void);
 extern uint64 sys_nanosleep(void);
-// extern uint64 sys_mount(void);
-// extern uint64 sys_umount(void);
+extern uint64 sys_mount(void);
+extern uint64 sys_umount(void);
 extern uint64 sys_mmap(void);
 extern uint64 sys_munmap(void);
 
@@ -146,8 +148,10 @@ static uint64 (*syscalls[])(void) = {
     [SYS_sleep] sys_sleep,
     [SYS_times] sys_times,
     [SYS_open] sys_open,
+    [SYS_openat] sys_openat,
     [SYS_write] sys_write,
     [SYS_mkdir] sys_mkdir,
+    [SYS_mkdirat] sys_mkdirat,
     [SYS_close] sys_close,
     [SYS_test_proc] sys_test_proc,
     [SYS_dev] sys_dev,
@@ -160,14 +164,14 @@ static uint64 (*syscalls[])(void) = {
     [SYS_dup3] sys_dup3,
     [SYS_getppid] sys_getppid,
     [SYS_clone] sys_clone,
-    // [SYS_getdents]    sys_getdents,
+    [SYS_getdents] sys_getdents,
     [SYS_sched_yield] sys_sched_yield,
     [SYS_uname] sys_uname,
-    // [SYS_unlinkat]    sys_unlink,
+    [SYS_unlinkat] sys_unlink,
     [SYS_gettimeofday] sys_gettimeofday,
     [SYS_nanosleep] sys_nanosleep,
-    // [SYS_mount]			sys_mount,
-    // [SYS_umount]		sys_umount,
+    [SYS_mount] sys_mount,
+    [SYS_umount] sys_umount,
     [SYS_mmap] sys_mmap,
     [SYS_munmap] sys_munmap,
     [SYS_shutdown] sys_shutdown,
@@ -190,8 +194,10 @@ static char *sysnames[] = {
     [SYS_sleep] "sleep",
     [SYS_times] "times",
     [SYS_open] "open",
+    [SYS_openat] "openat",
     [SYS_write] "write",
     [SYS_mkdir] "mkdir",
+    [SYS_mkdirat] "mkdirat",
     [SYS_close] "close",
     [SYS_test_proc] "test_proc",
     [SYS_dev] "dev",
@@ -204,14 +210,14 @@ static char *sysnames[] = {
     [SYS_dup3] "dup3",
     [SYS_getppid] "getppid",
     [SYS_clone] "clone",
-    // [SYS_getdents]    "getdents",
+    [SYS_getdents] "getdents",
     [SYS_sched_yield] "sched_yield",
     [SYS_uname] "uname",
-    // [SYS_unlinkat]    "unlink",
+    [SYS_unlinkat] "unlink",
     [SYS_gettimeofday] "gettimeofday",
     [SYS_nanosleep] "nanosleep",
-    // [SYS_mount]			"mount",
-    // [SYS_umount]		"umount",
+    [SYS_mount] "mount",
+    [SYS_umount] "umount",
     [SYS_mmap] "mmap",
     [SYS_munmap] "munmap",
     [SYS_shutdown] "shutdown",
