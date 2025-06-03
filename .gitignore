@@ -24,8 +24,10 @@ target/*
 
 # reference
 reference*/
+*.pdf
 
 # testcases
+test.txt
 tests/
 riscv64-testcases/
 testsuits-for-oskernel/
